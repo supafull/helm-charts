@@ -1,0 +1,18 @@
+dependencies:
+- name: supabase
+  repository: https://charts.bitnami.com/bitnami
+  version: 4.0.3
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 15.2.5
+- name: minio
+  repository: https://charts.bitnami.com/bitnami
+  version: 14.3.0
+- name: common
+  repository: https://charts.bitnami.com/bitnami
+  version: 2.19.1
+- name: vector
+  repository: https://helm.vector.dev
+  version: 0.32.1
+digest: sha256:ee18149e24959a6dc07486c3fc44bf3dea65e1e0f8008a25268b5ecd4f35ccea
+generated: "2024-04-29T17:27:48.686489258+08:00"

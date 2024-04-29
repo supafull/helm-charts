@@ -1,0 +1,221 @@
+{{- if .Values.analytics.enabled }}
+apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ template "supaplus.analytics.fullname" . }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+    app.kubernetes.io/component: analytics
+  {{- if .Values.commonAnnotations }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.analytics.replicaCount }}
+  {{- if .Values.analytics.updateStrategy }}
+  strategy: {{- toYaml .Values.analytics.updateStrategy | nindent 4 }}
+  {{- end }}
+  {{- $podLabels := include "common.tplvalues.merge" ( dict "values" ( list .Values.analytics.podLabels .Values.commonLabels ) "context" . ) }}
+  selector:
+    matchLabels: {{- include "common.labels.matchLabels" ( dict "customLabels" $podLabels "context" $ ) | nindent 6 }}
+      app.kubernetes.io/component: analytics
+  template:
+    metadata:
+      annotations:
+        {{- if .Values.analytics.podAnnotations }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.analytics.podAnnotations "context" $) | nindent 8 }}
+        {{- end }}
+      labels: {{- include "common.labels.standard" ( dict "customLabels" $podLabels "context" $ ) | nindent 8 }}
+        app.kubernetes.io/part-of: supaplus
+        app.kubernetes.io/component: analytics
+    spec:
+      serviceAccountName: {{ template "supabase.serviceAccountName" .Subcharts.supabase }}
+      {{- include "supabase.imagePullSecrets" .Subcharts.supabase | nindent 6 }}
+      automountServiceAccountToken: {{ .Values.analytics.automountServiceAccountToken }}
+      {{- if .Values.analytics.hostAliases }}
+      hostAliases: {{- include "common.tplvalues.render" (dict "value" .Values.analytics.hostAliases "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.analytics.affinity }}
+      affinity: {{- include "common.tplvalues.render" ( dict "value" .Values.analytics.affinity "context" $) | nindent 8 }}
+      {{- else }}
+      affinity:
+        podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.analytics.podAffinityPreset "component" "analytics" "customLabels" $podLabels "context" $) | nindent 10 }}
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.analytics.podAntiAffinityPreset "component" "analytics" "customLabels" $podLabels "context" $) | nindent 10 }}
+        nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.analytics.nodeAffinityPreset.type "key" .Values.analytics.nodeAffinityPreset.key "values" .Values.analytics.nodeAffinityPreset.values) | nindent 10 }}
+      {{- end }}
+      {{- if .Values.analytics.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.analytics.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.analytics.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.analytics.tolerations "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.analytics.priorityClassName }}
+      priorityClassName: {{ .Values.analytics.priorityClassName | quote }}
+      {{- end }}
+      {{- if .Values.analytics.schedulerName }}
+      schedulerName: {{ .Values.analytics.schedulerName | quote }}
+      {{- end }}
+      {{- if .Values.analytics.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- include "common.tplvalues.render" (dict "value" .Values.analytics.topologySpreadConstraints "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.analytics.podSecurityContext.enabled }}
+      securityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.analytics.podSecurityContext "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.analytics.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.analytics.terminationGracePeriodSeconds }}
+      {{- end }}
+      initContainers:
+        # FIXME: this should be analyticsdb!!!
+        {{- if not .Values.analytics.diagnosticMode.enabled }}
+        {{- include "supabase.waitForDBInitContainer" .Subcharts.supabase | nindent 8 }}
+        {{- end }}
+
+        {{- if .Values.analytics.initContainers }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.analytics.initContainers "context" $) | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: supabase-analytics
+          image: {{ template "supaplus.analytics.image" . }}
+          imagePullPolicy: {{ .Values.analytics.image.pullPolicy }}
+          {{- if .Values.analytics.containerSecurityContext.enabled }}
+          securityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.analytics.containerSecurityContext "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.analytics.diagnosticMode.enabled }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.analytics.diagnosticMode.command "context" $) | nindent 12 }}
+          {{- else if .Values.analytics.command }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.analytics.command "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.analytics.diagnosticMode.enabled }}
+          args: {{- include "common.tplvalues.render" (dict "value" .Values.analytics.diagnosticMode.args "context" $) | nindent 12 }}
+          {{- else if .Values.analytics.args }}
+          args: {{- include "common.tplvalues.render" (dict "value" .Values.analytics.args "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            - name: LOGFLARE_NODE_HOST
+              value: {{ .Values.analytics.application.logflareNodeHost | default "127.0.0.1" | quote }}
+            - name: LOGFLARE_SINGLE_TENANT
+              value: "true"
+            - name: LOGFLARE_SUPABASE_MODE
+              value: "true"
+            - name: FEATURE_FLAG_OVERRIDE
+              value: "multibackend=true"
+              # value: {{ .Values.analytics.application.featureFlagOverride | default "multibackend=true" | quote }}
+            - name: LOGFLARE_LOG_LEVEL
+              value: {{ .Values.analytics.logLevel | default "warn" | quote }}
+
+            - name: DB_USER
+              value: {{ include "supaplus.analyticsdb.database.user" . | quote }}
+            - name: DB_HOST
+              value: {{ include "supaplus.analyticsdb.database.host" . | quote }}
+            - name: DB_PORT
+              value: {{ include "supaplus.analyticsdb.database.port" . | quote }}
+            - name: DB_NAME
+              value: {{ include "supaplus.analyticsdb.database.name" . | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supaplus.analyticsdb.database.secretName" . }}
+                  key: {{ include "supaplus.analyticsdb.database.passwordKey" . | quote }}
+
+            # THESE ARE REQUIRED IN ADDITION TO POSTGRES_BACKEND_URL below!!!
+            - name: DB_SCHEMA
+              value: {{ .Values.analytics.application.dbSchema | default "public" | quote }}
+            - name: DB_DATABASE
+              value: $(DB_NAME)
+            - name: DB_HOSTNAME
+              value: $(DB_HOST)
+            - name: DB_USERNAME
+              value: $(DB_USER)
+            - name: DB_DRIVER
+              value: postgresql
+
+            - name: LOGFLARE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supaplus.analytics.secretName" . }}
+                  key: {{ include "supaplus.analytics.apiSecretKey" . }}
+
+            {{- if .Values.analytics.bigQuery.enabled }}
+            - name: GOOGLE_PROJECT_ID
+              value: {{ .Values.analytics.bigQuery.projectId | quote }}
+            - name: GOOGLE_PROJECT_NUMBER
+              value: {{ .Values.analytics.bigQuery.projectNumber | quote }}
+            {{- else }}
+            - name: POSTGRES_BACKEND_URL
+              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)
+            - name: POSTGRES_BACKEND_SCHEMA
+              value: $(DB_SCHEMA)
+            - name: LOGFLARE_FEATURE_FLAG_OVERRIDE
+              value: $(FEATURE_FLAG_OVERRIDE)
+            {{- end }}
+
+            {{- if .Values.analytics.extraEnvVars }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.analytics.extraEnvVars "context" $) | nindent 12 }}
+            {{- end }}
+          envFrom:
+            {{- if .Values.analytics.extraConfigExistingConfigmap }}
+            - configMapRef:
+                name: {{ include "supaplus.analytics.extraConfigmapName" . }}
+            {{- end }}
+            {{- if .Values.analytics.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ include "common.tplvalues.render" (dict "value" .Values.analytics.extraEnvVarsCM "context" $) }}
+            {{- end }}
+            {{- if .Values.analytics.extraEnvVarsSecret }}
+            - secretRef:
+                name: {{ include "common.tplvalues.render" (dict "value" .Values.analytics.extraEnvVarsSecret "context" $) }}
+            {{- end }}
+          {{- if .Values.analytics.resources }}
+          resources: {{- toYaml .Values.analytics.resources | nindent 12 }}
+          {{- else if ne .Values.analytics.resourcesPreset "none" }}
+          resources: {{- include "common.resources.preset" (dict "type" .Values.analytics.resourcesPreset) | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http-analytics
+              containerPort: {{ .Values.analytics.containerPorts.http }}
+          {{- if not .Values.analytics.diagnosticMode.enabled }}
+          {{- if .Values.analytics.customLivenessProbe }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.analytics.customLivenessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.analytics.livenessProbe.enabled }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.analytics.livenessProbe "enabled") "context" $) | nindent 12 }}
+            httpGet:
+              path: /health
+              port: http-analytics
+          {{- end }}
+          {{- if .Values.analytics.customReadinessProbe }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.analytics.customReadinessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.analytics.readinessProbe.enabled }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.analytics.readinessProbe "enabled") "context" $) | nindent 12 }}
+            httpGet:
+              path: /health
+              port: http-analytics
+          {{- end }}
+          {{- if .Values.analytics.customStartupProbe }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" .Values.analytics.customStartupProbe "context" $) | nindent 12 }}
+          {{- else if .Values.analytics.startupProbe.enabled }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.analytics.startupProbe "enabled") "context" $) | nindent 12 }}
+            httpGet:
+              path: /health
+              port: http-analytics
+          {{- end }}
+          {{- end }}
+          {{- if .Values.analytics.lifecycleHooks }}
+          lifecycle: {{- include "common.tplvalues.render" (dict "value" .Values.analytics.lifecycleHooks "context" $) | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: empty-dir
+              mountPath: /tmp
+              subPath: tmp-dir
+          {{- if .Values.analytics.extraVolumeMounts }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.analytics.extraVolumeMounts "context" $) | nindent 12 }}
+          {{- end }}
+        {{- if .Values.analytics.sidecars }}
+        {{- include "common.tplvalues.render" ( dict "value" .Values.analytics.sidecars "context" $) | nindent 8 }}
+        {{- end }}
+      volumes:
+        - name: empty-dir
+          emptyDir: {}
+        {{- if .Values.analytics.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.analytics.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}
+{{- end }}

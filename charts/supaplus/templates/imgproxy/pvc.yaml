@@ -1,0 +1,31 @@
+{{- if and .Values.imgproxy.persistence.enabled (not .Values.imgproxy.persistence.existingClaim) -}}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ include "supaplus.imgproxy.fullname" . }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  {{- $versionLabel := dict "app.kubernetes.io/version" ( include "common.images.version" ( dict "imageRoot" .Values.imgproxy.image "chart" .Chart ) ) }}
+  {{- $labels := include "common.tplvalues.merge" ( dict "values" ( list .Values.commonLabels $versionLabel ) "context" . ) }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" $labels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: supaplus
+    app.kubernetes.io/component: imgproxy
+  {{- if or .Values.imgproxy.persistence.annotations .Values.commonAnnotations }}
+  {{- $annotations := include "common.tplvalues.merge" ( dict "values" ( list .Values.imgproxy.persistence.annotations .Values.commonAnnotations ) "context" . ) }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" $annotations "context" $) | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+  {{- range .Values.imgproxy.persistence.accessModes }}
+    - {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.imgproxy.persistence.size | quote }}
+  {{- if .Values.imgproxy.persistence.selector }}
+  selector: {{- include "common.tplvalues.render" (dict "value" .Values.imgproxy.persistence.selector "context" $) | nindent 4 }}
+  {{- end }}
+  {{- if .Values.imgproxy.persistence.dataSource }}
+  dataSource: {{- include "common.tplvalues.render" (dict "value" .Values.imgproxy.persistence.dataSource "context" $) | nindent 4 }}
+  {{- end }}
+  {{- include "common.storage.class" (dict "persistence" .Values.imgproxy.persistence "global" .Values.global) | nindent 2 }}
+{{- end -}}

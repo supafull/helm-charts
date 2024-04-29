@@ -1,0 +1,31 @@
+{{- if and .Values.functions.persistence.enabled (not .Values.functions.persistence.existingClaim) -}}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ include "supaplus.functions.fullname" . }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  {{- $versionLabel := dict "app.kubernetes.io/version" ( include "common.images.version" ( dict "imageRoot" .Values.functions.image "chart" .Chart ) ) }}
+  {{- $labels := include "common.tplvalues.merge" ( dict "values" ( list .Values.commonLabels $versionLabel ) "context" . ) }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" $labels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: supaplus
+    app.kubernetes.io/component: functions
+  {{- if or .Values.functions.persistence.annotations .Values.commonAnnotations }}
+  {{- $annotations := include "common.tplvalues.merge" ( dict "values" ( list .Values.functions.persistence.annotations .Values.commonAnnotations ) "context" . ) }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" $annotations "context" $) | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+  {{- range .Values.functions.persistence.accessModes }}
+    - {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.functions.persistence.size | quote }}
+  {{- if .Values.functions.persistence.selector }}
+  selector: {{- include "common.tplvalues.render" (dict "value" .Values.functions.persistence.selector "context" $) | nindent 4 }}
+  {{- end }}
+  {{- if .Values.functions.persistence.dataSource }}
+  dataSource: {{- include "common.tplvalues.render" (dict "value" .Values.functions.persistence.dataSource "context" $) | nindent 4 }}
+  {{- end }}
+  {{- include "common.storage.class" (dict "persistence" .Values.functions.persistence "global" .Values.global) | nindent 2 }}
+{{- end -}}
