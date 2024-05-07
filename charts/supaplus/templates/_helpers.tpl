@@ -195,3 +195,14 @@ analytics (logflare) credential api secret key
   {{- print "api-key" -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Reproduce supabase templates
+TODO: this may be possible otherwise but I couldn't work out how!
+*/}}
+{{- define "supaplus.jwt.secretName" -}}
+{{- include "supabase.jwt.secretName" .Subcharts.supabase -}}
+{{- end -}}
+{{- define "supaplus.jwt.secretKey" -}}
+{{- include "supabase.jwt.secretKey" .Subcharts.supabase -}}
+{{- end -}}

@@ -2,8 +2,8 @@ apiVersion: v2
 name: supaplus
 description: A Helm chart for Kubernetes to deploy Bitnami Supabase with the missing features added
 type: application
-version: 0.0.4
-appVersion: "4.0.3"
+version: 0.0.5
+appVersion: "4.0.x"
 
 dependencies:
   - name: supabase
