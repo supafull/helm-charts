@@ -2,6 +2,37 @@ apiVersion: v1
 entries:
   supaplus:
   - apiVersion: v2
+    appVersion: 4.0.x
+    created: "2024-05-09T08:41:53.903582342Z"
+    dependencies:
+    - name: supabase
+      repository: https://charts.bitnami.com/bitnami
+      version: 4.x
+    - alias: analyticsdb
+      condition: analyticsdb.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: 15.x
+    - condition: minio.enabled
+      name: minio
+      repository: https://charts.bitnami.com/bitnami
+      version: 14.x
+    - name: common
+      repository: https://charts.bitnami.com/bitnami
+      version: 2.x.x
+    - condition: analytics.enabled
+      name: vector
+      repository: https://helm.vector.dev
+      version: 0.x.x
+    description: A Helm chart for Kubernetes to deploy Bitnami Supabase with the missing
+      features added
+    digest: 634718c008f58eab1ef029f1f2244d808685e4d6fb772b69d9bdda15a406b1f8
+    name: supaplus
+    type: application
+    urls:
+    - https://github.com/supafull/helm-charts/releases/download/supaplus-0.0.5/supaplus-0.0.5.tgz
+    version: 0.0.5
+  - apiVersion: v2
     appVersion: 4.0.3
     created: "2024-04-29T13:31:06.362262925Z"
     dependencies:
@@ -32,4 +63,4 @@ entries:
     urls:
     - https://github.com/supafull/helm-charts/releases/download/supaplus-0.0.4/supaplus-0.0.4.tgz
     version: 0.0.4
-generated: "2024-04-29T13:31:06.362275409Z"
+generated: "2024-05-09T08:41:53.903596308Z"
