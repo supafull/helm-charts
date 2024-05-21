@@ -138,6 +138,26 @@ spec:
                   name: {{ include "supabase.jwt.secretName" .Subcharts.supabase }}
                   key: {{ include "supabase.jwt.serviceSecretKey" .Subcharts.supabase }}
 
+            - name: WORKER_MEMORY_LIMIT_MB
+              value: {{ default "150" .Values.functions.workerMemoryLimitMb | quote }}
+            - name: WORKER_TIMEOUT_MS
+              value: {{ default "60000" .Values.functions.workerTimeoutMs | quote }}
+            - name: WORKER_CPU_TIME_SOFT_LIMIT_MS
+              value: {{ default "1000" .Values.functions.workerCPUTimeSoftLimitMs | quote }}
+            - name: WORKER_CPU_TIME_HARD_LIMIT_MS
+              value: {{ default "2000" .Values.functions.workerCPUTimeHardLimitMs | quote }}
+            - name: WORKER_FORCE_CREATE
+              value: {{ default "false" .Values.functions.workerForceCreate | quote }}
+            - name: WORKER_NET_ACCESS_DISABLED
+              value: {{ default "false" .Values.functions.workerNetAccessDisabled | quote }}
+            - name: WORKER_NO_MODULE_CACHE
+              value: {{ default "false" .Values.functions.workerNoModuleCache | quote }}
+
+            {{- if .Values.functions.workerImportMapPath }}
+            - name: WORKER_IMPORT_MAP_PATH
+              value: {{ .Values.functions.workerImportMapPath | quote }}
+            {{- end }}
+
             {{- if .Values.functions.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.functions.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}

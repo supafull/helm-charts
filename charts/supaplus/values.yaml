@@ -188,6 +188,16 @@ functions:
       - infinity
   userFunctionsPath: /bitnami/supabase-functions
   entrypointPath: /home/deno/functions/main
+
+  workerMemoryLimitMb: 150
+  workerTimeoutMs: 60000
+  workerCPUTimeSoftLimitMs: 1000
+  workerCPUTimeHardLimitMs: 2000
+  workerNoModuleCache: false
+  workerForceCreate: false
+  workerNetAccessDisabled: false
+  # workerImportMapPath:  # no default value
+
   replicaCount: 1
   extraConfig: {}
   existingConfigmap: ""
