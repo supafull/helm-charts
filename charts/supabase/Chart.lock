@@ -1,0 +1,21 @@
+dependencies:
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 15.5.4
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 15.5.4
+- name: kong
+  repository: https://charts.bitnami.com/bitnami
+  version: 12.2.1
+- name: minio
+  repository: https://charts.bitnami.com/bitnami
+  version: 14.6.7
+- name: vector
+  repository: https://helm.vector.dev
+  version: 0.33.0
+- name: common
+  repository: https://charts.bitnami.com/bitnami
+  version: 2.20.0
+digest: sha256:e2a0cb2a7d39ff5e2c7759294652c37f3493e2748df8676020085f5c5d4c1561
+generated: "2024-06-10T13:28:39.313738027+08:00"

@@ -1,0 +1,94 @@
+{{- if and .Values.realtime.enabled .Values.realtime.initDefaultTenant }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Release.Name }}-post-install-configmap-tenant"
+data:
+  tenant.sh: |
+    #!/bin/sh
+
+    generate_post_data()
+    {
+      cat <<EOF
+    {
+      "tenant" : {
+        "name": "$REALTIME_HOST",
+        "external_id": "$REALTIME_HOST",
+        "jwt_secret": "$API_JWT_SECRET",
+        "extensions": [
+          {
+            "type": "postgres_cdc_rls",
+            "settings": {
+              "db_name": "$DB_NAME",
+              "db_host": "$DB_HOST",
+              "db_user": "$DB_USER",
+              "db_password": "$DB_PASSWORD",
+              "db_port": "$DB_PORT",
+              "ssl_enforced": false,
+              "region": "us-west-1",
+              "poll_interval_ms": 100,
+              "poll_max_record_bytes": 1048576
+            }
+          }
+        ]
+      }
+    }
+    EOF
+    }
+
+    curl -vvv -H 'Content-Type: application/json' \
+      -H "Authorization: Bearer ${SERVICE_KEY}" \
+      -d "$(generate_post_data)" \
+      "http://${REALTIME_HOST}/api/tenants"
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}-post-install-job-tenant"
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      initContainers:
+        {{- include "supabase.database.checkdbready" . | indent 8 }}
+
+      containers:
+      - name: tenant
+        image: alpine/curl:latest
+        env:
+          {{ include "supabase.database.envvars" . | indent 10 }}
+
+          - name: SERVICE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "supabase.jwt.secretName" . }}
+                key: {{ include "supabase.jwt.serviceSecretKey" . }}
+
+          - name: REALTIME_HOST
+            value: {{ template "supabase.realtime.fullname" . }}
+
+          - name: API_JWT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "supabase.jwt.secretName" . | quote }}
+                key: {{ include "supabase.jwt.secretKey" . | quote }}
+
+        command: ["/script/tenant.sh"]
+
+        volumeMounts:
+          - name: script
+            mountPath: "/script"
+      volumes:
+        - name: script
+          configMap:
+            name: "{{ .Release.Name }}-post-install-configmap-tenant"
+            defaultMode: 0500
+      restartPolicy: Never
+
+{{- end }}
