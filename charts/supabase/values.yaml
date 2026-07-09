@@ -1032,7 +1032,11 @@ functions:
       - sleep
     args:
       - infinity
-  userFunctionsPath: /supabase/supabase-functions
+  # MUST NOT live at a root-level path whose first segment matches a database name: Bun's SQL
+  # client turns `postgres://host:port/<db>` into a unix-socket connection whenever `/<db>`
+  # exists on the filesystem (oven-sh/bun#27713), so mounting at /supabase/... breaks every
+  # Bun SQL connect to a database named "supabase" from inside the functions pod.
+  userFunctionsPath: /var/lib/supabase/functions
   entrypointPath: /home/deno/functions/main
 
   # kongReadTimeoutMs: 60000
@@ -1174,7 +1178,9 @@ functions:
     ingressNSPodMatchLabels: {}
   persistence:
     enabled: false
-    mountPath: /supabase/supabase-functions
+    # Keep in sync with functions.userFunctionsPath, and never at /supabase/... — see the
+    # Bun unix-socket note on userFunctionsPath above (oven-sh/bun#27713).
+    mountPath: /var/lib/supabase/functions
     subPath: ""
     storageClass: ""
     annotations: {}
